@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Serverless Smart Inbox</title>
+    <title>Orion – Serverless Smart Inbox AI</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,7 +13,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: auto;
             background: white;
             padding: 30px;
@@ -20,26 +21,43 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        textarea {
+        textarea,
+        select,
+        input[type="file"] {
             width: 100%;
-            height: 100px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             padding: 10px;
             font-size: 14px;
         }
 
         button {
             padding: 10px 20px;
+            margin-top: 5px;
             font-size: 14px;
             cursor: pointer;
         }
 
-        pre {
-            background: #eee;
+        .section {
+            margin-top: 35px;
+        }
+
+        .result {
+            background: #f0f2f5;
             padding: 15px;
-            border-radius: 4px;
-            margin-top: 20px;
-            overflow-x: auto;
+            border-radius: 6px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-size: 13px;
+        }
+
+        .label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+        }
+
+        hr {
+            margin: 40px 0;
         }
     </style>
 </head>
@@ -47,45 +65,227 @@
 <body>
 
     <div class="container">
-        <h2>📬 Serverless Smart Inbox</h2>
-        <p>Type a message to analyze sentiment and priority.</p>
+        <h2>🚀 Orion – Serverless Smart Inbox AI</h2>
+        <p>
+            Analyze sentiment from messages, translate text across languages,
+            and extract insights from documents using AWS-native AI services.
+        </p>
 
-        <textarea id="message" placeholder="Type your message here..."></textarea>
-        <button onclick="sendMessage()">Analyze</button>
+        <!-- ========================= -->
+        <!-- SENTIMENT ANALYSIS -->
+        <!-- ========================= -->
+        <div class="section">
+            <h3>📬 Sentiment Analysis (Text)</h3>
 
-        <pre id="result"></pre>
+            <textarea id="sentimentMessage" placeholder="Type a message for sentiment analysis..."></textarea>
+
+            <button onclick="analyzeSentiment()">Analyze Sentiment</button>
+
+            <div id="sentimentResult" class="result"></div>
+        </div>
+
+        <hr />
+
+        <!-- ========================= -->
+        <!-- TRANSLATION -->
+        <!-- ========================= -->
+        <div class="section">
+            <h3>🌍 Translate Text</h3>
+
+            <textarea id="translateText" placeholder="Text to translate..."></textarea>
+
+            <label class="label">Source language</label>
+            <select id="sourceLang">
+                <option value="auto">Auto-detect</option>
+                <option value="pt">Portuguese</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+            </select>
+
+            <label class="label">Target language</label>
+            <select id="targetLang">
+                <option value="en">English</option>
+                <option value="pt">Portuguese</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+            </select>
+
+            <button onclick="translateText()">Translate</button>
+
+            <div id="translateResult" class="result"></div>
+        </div>
+
+        <hr />
+
+        <!-- ========================= -->
+        <!-- DOCUMENT OCR + SENTIMENT -->
+        <!-- ========================= -->
+        <div class="section">
+            <h3>📄 Document Sentiment Analysis (OCR)</h3>
+
+            <input type="file" id="documentFile" />
+
+            <button onclick="uploadAndProcessDocument()">
+                Upload & Analyze Document
+            </button>
+
+            <div id="documentResult" class="result"></div>
+        </div>
+
     </div>
 
     <script>
-        const API_URL = "https://uyk8va4f3i.execute-api.us-east-1.amazonaws.com/messages";
+        const API_BASE = "https://uyk8va4f3i.execute-api.us-east-1.amazonaws.com";
 
-        async function sendMessage() {
-            const message = document.getElementById("message").value;
-            const resultBox = document.getElementById("result");
+        /* -------------------------
+           Sentiment Analysis
+        -------------------------- */
+        async function analyzeSentiment() {
+            const message = document.getElementById("sentimentMessage").value;
+            const resultBox = document.getElementById("sentimentResult");
 
             if (!message) {
                 resultBox.textContent = "Please enter a message.";
                 return;
             }
 
-            resultBox.textContent = "Analyzing...";
+            resultBox.textContent = "Analyzing sentiment...";
 
             try {
-                const response = await fetch(API_URL, {
+                const res = await fetch(`${API_BASE}/messages`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ message })
                 });
 
-                const data = await response.json();
+                const data = await res.json();
+
                 resultBox.textContent =
-                    data.summary.message +
-                    "\n\nSentiment: " + data.summary.sentiment +
-                    "\nPriority: " + data.summary.priority;
+                    `Sentiment: ${data.summary.sentiment}\n` +
+                    `Priority: ${data.summary.priority}\n\n` +
+                    data.summary.message;
+
             } catch (err) {
-                resultBox.textContent = "Error calling API.";
+                resultBox.textContent = "Error calling sentiment API.";
+            }
+        }
+
+        /* -------------------------
+           Translation
+        -------------------------- */
+        async function translateText() {
+            const text = document.getElementById("translateText").value;
+            const source = document.getElementById("sourceLang").value;
+            const target = document.getElementById("targetLang").value;
+            const resultBox = document.getElementById("translateResult");
+
+            if (!text || !target) {
+                resultBox.textContent = "Please provide text and target language.";
+                return;
+            }
+
+            resultBox.textContent = "Translating...";
+
+            try {
+                const res = await fetch(`${API_BASE}/translate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        text,
+                        source_language: source,
+                        target_language: target
+                    })
+                });
+
+                const data = await res.json();
+
+                resultBox.textContent =
+                    `Detected language: ${data.detected_language}\n\n` +
+                    `Translated text:\n${data.translated_text}`;
+
+            } catch (err) {
+                resultBox.textContent = "Error calling translate API.";
+            }
+        }
+
+        /* -------------------------
+           Document Upload + OCR
+        -------------------------- */
+        async function uploadAndProcessDocument() {
+            const fileInput = document.getElementById("documentFile");
+            const resultBox = document.getElementById("documentResult");
+
+            if (!fileInput.files.length) {
+                resultBox.textContent = "Please select a document.";
+                return;
+            }
+
+            const file = fileInput.files[0];
+
+            try {
+                resultBox.textContent = "Requesting upload URL...";
+
+                // 1️⃣ Get presigned URL
+                const uploadMeta = await fetch(`${API_BASE}/documents/upload-url`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        file_name: file.name,
+                        content_type: file.type || "application/octet-stream"
+                    })
+                }).then(r => r.json());
+
+                // 2️⃣ Upload to S3
+                resultBox.textContent = "Uploading document to S3...";
+
+                await fetch(uploadMeta.upload_url, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": file.type || "application/octet-stream"
+                    },
+                    body: file
+                });
+
+                // 3️⃣ Process document
+                resultBox.textContent = "Running OCR and sentiment analysis...";
+
+                const response = await fetch(`${API_BASE}/documents/process`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        bucket: uploadMeta.bucket,
+                        key: uploadMeta.key
+                    })
+                });
+
+                const rawText = await response.text();
+                console.log("RAW RESPONSE:", rawText);
+
+                let result;
+                try {
+                    result = JSON.parse(rawText);
+                } catch {
+                    resultBox.textContent = "Invalid JSON returned from backend.";
+                    return;
+                }
+
+                if (result.error) {
+                    resultBox.textContent = "Backend error:\n" + result.error;
+                    return;
+                }
+
+                resultBox.textContent =
+                    `Sentiment: ${result.sentiment}\n` +
+                    `Priority: ${result.priority}\n\n` +
+                    `Extracted text preview:\n` +
+                    result.extracted_text_preview;
+
+
+
+            } catch (err) {
+                console.error(err);
+                resultBox.textContent = "Error processing document.";
             }
         }
     </script>

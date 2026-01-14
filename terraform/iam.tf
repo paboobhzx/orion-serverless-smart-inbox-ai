@@ -42,6 +42,38 @@ resource "aws_iam_policy" "lambda_policy" {
           aws_sqs_queue.normal_priority.arn,
           aws_sqs_queue.low_priority.arn
         ]
+      },
+      #Amazon Translate
+      {
+        Effect = "Allow"
+        Action = [
+          "translate:TranslateText",
+          "comprehend:DetectDominantLanguage"
+        ]
+        Resource = "*"
+      },
+      #Amazon Textract
+      {
+        Effect = "Allow"
+        Action = [
+          "textract:DetectDocumentText"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = "${aws_s3_bucket.documents_bucket.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "textract:DetectDocumentText"
+        ]
+        Resource = "*"
       }
     ]
   })

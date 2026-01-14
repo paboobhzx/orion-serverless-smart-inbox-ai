@@ -17,7 +17,8 @@ resource "aws_lambda_function" "sentiment_processor" {
       NORMAL_QUEUE_URL = aws_sqs_queue.normal_priority.id
       LOW_QUEUE_URL    = aws_sqs_queue.low_priority.id
       #Audit
-      AUDIT_BUCKET = aws_s3_bucket.audit_bucket.bucket
+      AUDIT_BUCKET     = aws_s3_bucket.audit_bucket.bucket
+      DOCUMENTS_BUCKET = aws_s3_bucket.documents_bucket.bucket
     }
   }
 

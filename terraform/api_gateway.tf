@@ -1,9 +1,25 @@
+resource "aws_apigatewayv2_route" "documents_upload_url" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /documents/upload-url"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+resource "aws_apigatewayv2_route" "documents_process" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /documents/process"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+resource "aws_apigatewayv2_route" "translate" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /translate"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "${local.name_prefix}-api"
   protocol_type = "HTTP"
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["POST", "OPTIONS"]
+    allow_methods = ["GET", "POST", "PUT", "OPTIONS"]
     allow_headers = ["content-type"]
   }
 }
