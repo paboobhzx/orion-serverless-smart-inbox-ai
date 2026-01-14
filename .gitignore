@@ -1,59 +1,19 @@
-# =========================
 # Terraform
-# =========================
 .terraform/
+*.tfstate
+*.tfstate.*
 .terraform.lock.hcl
-terraform.tfstate
-terraform.tfstate.*
+
+# Terraform crash logs
 crash.log
+crash.*.log
 
-# =========================
-# Lambda / Python
-# =========================
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Lambda build artifacts
-lambda.zip
-*.zip
-
-# =========================
-# Environment / Secrets
-# =========================
-.env
-.env.*
-*.pem
-*.key
-*.crt
-
-# =========================
-# AWS / Credentials
-# =========================
-.aws/
-.awscli/
-
-# =========================
-# Node / Frontend (future-proof)
-# =========================
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# =========================
 # OS / Editor
-# =========================
 .DS_Store
-Thumbs.db
 .idea/
 .vscode/
-*.swp
-*.swo
 
-# =========================
-# Logs
-# =========================
-*.log
+# Python
+__pycache__/
+*.pyc
 
