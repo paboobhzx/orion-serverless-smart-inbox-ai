@@ -13,6 +13,21 @@ resource "aws_apigatewayv2_route" "translate" {
   route_key = "POST /translate"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
+resource "aws_apigatewayv2_route" "speech_synthezize" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /speech/synthesize"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+resource "aws_apigatewayv2_route" "transcribe_upload" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /speech/transcribe/upload-url"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+resource "aws_apigatewayv2_route" "speech_transcribe_process" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /speech/transcribe/process"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
 
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "${local.name_prefix}-api"
@@ -36,7 +51,11 @@ resource "aws_apigatewayv2_route" "post_message" {
   route_key = "POST /messages"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
-
+resource "aws_apigatewayv2_route" "speech_transcribe_status" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /speech/transcribe/status"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
 
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http_api.id

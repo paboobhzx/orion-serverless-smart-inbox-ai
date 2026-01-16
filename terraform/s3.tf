@@ -1,3 +1,35 @@
+resource "aws_s3_bucket_policy" "documents_policy" {
+  bucket = aws_s3_bucket.documents.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowTranscribeReadAccess"
+        Effect = "Allow"
+        Principal = {
+          Service = "transcribe.amazonaws.com"
+        }
+        Action = [
+          "s3:GetObject"
+        ]
+        Resource = "${aws_s3_bucket.documents.arn}/*"
+      },
+      {
+        Sid    = "AllowTranscribeWriteAccess"
+        Effect = "Allow"
+        Principal = {
+          Service = "transcribe.amazonaws.com"
+        }
+        Action = [
+          "s3:PutObject"
+        ]
+        Resource = "${aws_s3_bucket.documents.arn}/outputs/transcriptions/*"
+      }
+    ]
+  })
+}
+
 resource "aws_s3_bucket" "documents_bucket" {
   bucket = "${local.name_prefix}-documents"
 }

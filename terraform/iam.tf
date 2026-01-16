@@ -98,3 +98,23 @@ resource "aws_iam_role_policy_attachment" "lambda_policy_attach" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_policy.arn
 }
+resource "aws_iam_role_policy" "lambda_ai_voice_policy" {
+  name = "${local.name_prefix}-lambda-ai-voice-policy"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "transcribe:StartTranscriptionJob",
+          "transcribe:GetTranscriptionJob",
+          "polly:SynthesizeSpeech"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+

@@ -22,6 +22,7 @@ LOW_QUEUE_URL = os.environ["LOW_QUEUE_URL"]
 
 # Optional audit bucket
 AUDIT_BUCKET = os.environ.get("AUDIT_BUCKET")
+DOCUMENTS_BUCKET = os.environ["DOCUMENTS_BUCKET"]
 
 
 def lambda_handler(event, context):
@@ -41,6 +42,17 @@ def lambda_handler(event, context):
     
     if path == "/documents/process": 
         return handle_document_process(body)
+    if path == "/speech/transcribe/upload-url": 
+        return handle_audio_upload_url(body)
+    
+    if path == "/speech/transcribe/process":
+        return handle_audio_transcribe(body)
+    
+    if path == "/speech/synthesize":
+        return handle_text_to_speech(body)
+    
+    if path == "speech/transcribe/status":
+        return handle_transcribe_status(event.get("queryStringParameters, {}"))
 
     return _response(404, {"error": "Route not found"})
 
@@ -83,7 +95,7 @@ def handle_document_process(body):
     payload = { 
         "id": str(uuid.uuid4()),
         "source": "document",
-        "s3_buket": bucket,
+        "s3:bucket": bucket,
         "s3_key": key,
         "extracted_text": extracted_text,
         "sentiment": sentiment,
@@ -237,7 +249,7 @@ def handle_document_upload_url(body):
     content_type = body.get("content_type")
     if not file_name or not content_type:
         return _response(400, {"error": "file_name and content_type are required"})
-    bucket = os.environ.get("DOCUMENTS_BUCKET")
+    bucket = DOCUMENTS_BUCKET
     key = f"uploads/documents/{uuid.uuid4()}-{file_name}"
     s3_client = boto3.client("s3")
 
@@ -255,3 +267,110 @@ def handle_document_upload_url(body):
         "bucket": bucket,
         "key": key
     })
+def handle_audio_upload_url(body):
+    file_name = body.get("file_name")
+    content_type = body.get("content_type", "audio/mpeg")
+    if not file_name:
+        return _response(400, { "error": "file_name is required"})
+    key = f"uploads/audio/{uuid.uuid4()}-{file_name}"
+
+    url = s3.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={ 
+            "Bucket": DOCUMENTS_BUCKET,
+            "Key": key,
+            "ContentType": content_type
+        },
+        ExpiresIn=900
+    )
+
+    return _response(200, { 
+        "upload_url": url,
+        "bucket": DOCUMENTS_BUCKET,
+        "key": key
+    })
+
+def handle_audio_transcribe(body):
+    bucket = body.get("bucket")
+    key = body.get("key")
+    language = body.get("language", "pt-BR")
+
+    if not bucket or not key:
+        return _response(400, { "error": "bucket and key are required"})
+    
+    job_name = f"transcribe-{uuid.uuid4()}"
+    transcribe = boto3.client("transcribe")
+    transcribe.start_transcription_job(
+        TranscriptionJobName=job_name,
+        Media={ 
+            "MediaFileUri": f"s3://{bucket}/{key}"
+        },
+        MediaFormat=key.split(".")[-1],
+        LanguageCode=language,
+        OutputBucketName=bucket,
+        OutputKey=f"outputs/transcriptions/{job_name}.json"
+    )
+    return _response(200, { 
+        "job_name": job_name,
+        "status": "IN_PROGRESS"
+    })
+
+def handle_text_to_speech(body):
+    text = body.get("text")
+    voice = body.get("voice", "Camila")
+    language = body.get("language","pt-BR")
+
+    if not text:
+        return _response(400, { "error": "text is required"})
+    
+    polly = boto3.client("polly")
+    response = polly.synthesize_speech(
+        Text=text,
+        OutputFormat="mp3",
+        VoiceId=voice,
+        LanguageCode=language
+    )
+
+    audio_key = f"outputs/speech/{uuid.uuid4()}.mp3"
+
+    s3.put_object(
+        Bucket=DOCUMENTS_BUCKET,
+        Key=audio_key,
+        Body=response["AudioStream"].read(),
+        ContentType="audio/mpeg"
+    )
+    audio_url = s3.generate_presigned_url(
+        ClientMethod="get_object",
+        Params={ 
+            "Bucket": DOCUMENTS_BUCKET,
+            "Key": audio_key
+        },
+        ExpiresIn=900
+    )
+
+    return _response(200, { 
+        "audio_url": audio_url
+    })
+
+def handle_transcribe_status(query):
+    job_name = query.get("job_name")
+
+    if not job_name:
+        return _response(400, { "error": "job_name is required"})
+    
+    transcribe = boto3.client("transcribe")
+    job = transcribe.get_transcription_job(
+        TranscriptionJobName=job_name 
+    )
+
+    status = job["TranscriptionJob"]["TranscriptionJobStatus"]
+
+    response = { 
+        "job_name": job_name,
+        "status": status
+    }
+
+    if status == "COMPLETED":
+        response["transcript_uri"] = job["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
+
+    return _response(200, response)
